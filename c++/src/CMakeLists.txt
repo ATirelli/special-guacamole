@@ -4,7 +4,7 @@ set(CMAKE_BUILD_TYPE Debug)
 file(GLOB_RECURSE SOURCES LIST_DIRECTORIES true *.h *.cpp *.hpp *.c)
 
 set(SOURCES ${SOURCES})
-find_package(Boost COMPONENTS program_options)
+find_package(Boost COMPONENTS program_options filesystem)
 find_package(HDF5)
 include_directories(${HDF5_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
