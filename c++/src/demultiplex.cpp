@@ -7,7 +7,7 @@
 #include <boost/filesystem.hpp>
 
 void demultiplex_file(const std::string &fname,const std::string &kmer_file,  std::string &barcode_file,
-                      std::string & adapter, std::string & out_dir) {
+                      std::string & umi_dir, std::string & adapter, std::string & out_dir) {
     fast5_file f_p = fast5_open(fname);
     std::vector<std::string> read_ids = fast5_get_multi_read_groups(f_p);
     size_t n_reads {read_ids.size()};
@@ -26,27 +26,31 @@ void demultiplex_file(const std::string &fname,const std::string &kmer_file,  st
     auto barcodes = get_barcode_data(barcode_file, adapter, kmer_list, &bc_list);
 
     std::vector<std::string> assigned_barcodes (read_ids.size(), "");
+    std::vector<std::string> assigned_umis (read_ids.size(), "");
     std::vector<float> computed_distances (read_ids.size(), 0);
 
     for (size_t i{0}; i<n_reads; i++) {
         std::string read_id {read_ids.at(i)};
         read_id.erase(0, 5);
         std::cout<< "Processing read number " << i << std::endl;
-        process_read(f_p, read_id, *barcodes, bc_list, kmer_means, kmer_stds,
-                     &(assigned_barcodes.at(i)), &(computed_distances.at(i)));
+        process_read(f_p, read_id, *barcodes, bc_list, umi_dir, adapter, kmer_list, kmer_means, kmer_stds,
+                     &(assigned_barcodes.at(i)),&(assigned_umis.at(i)), &(computed_distances.at(i)));
     }
     boost::filesystem::path p(fname);
     std::string basename = p.filename().string();;
     std::string fname_output=out_dir+std::regex_replace(basename, std::regex(".fast5"), ".txt");
-    write_output(fname_output,read_ids, assigned_barcodes, computed_distances);
+    write_output(fname_output,read_ids, assigned_barcodes, assigned_umis,computed_distances);
 
 }
 
 void process_read(fast5_file &f_p, std::string& read_id,
                   std::unordered_map<size_t, std::map<std::string, std::vector<int>>>&barcodes,
                   std::vector<std::string> &bc_list,
+                  std::string &umi_dir,
+                  std::string &adapter,
+                  std::vector<std::string>& kmer_list,
                   std::vector<float> &kmer_means,std::vector<float>& kmer_stds,
-                  std::string* assigned_barcode, float* computed_dist) {
+                  std::string* assigned_barcode,std::string* assigned_umi, float* computed_dist) {
 
     // load data to retrieve signal and read
     fast5_raw_scaling scaling{fast5_get_channel_params(f_p, read_id)};
@@ -67,8 +71,8 @@ void process_read(fast5_file &f_p, std::string& read_id,
     if (sw_score>=12) {
         //compute barcode
         std::map<std::string, std::vector<int>> bc_dir{barcodes[sw_strand]};
-        assign_barcode(signal, sw_strand, bc_dir, bc_list, kmer_means, kmer_stds,
-                       len_read, assigned_barcode, computed_dist);
+        assign_barcode(signal, sw_strand, bc_dir, bc_list, umi_dir,adapter, kmer_list, kmer_means, kmer_stds,
+                       len_read, assigned_barcode,assigned_umi, computed_dist);
     }
     else {
         // no poly-A tail was found so we discard the read
@@ -78,8 +82,9 @@ void process_read(fast5_file &f_p, std::string& read_id,
 }
 
 void assign_barcode(std::vector<float>&signal, size_t& sw_strand,std::map<std::string, std::vector<int>>&barcodes,
-                    std::vector<std::string> &bc_list, std::vector<float> &kmer_means,std::vector<float>& kmer_stds,
-                    size_t &len_read,std::string*assigned_barcode, float*computed_distance) {
+                    std::vector<std::string> &bc_list, std::string &umi_dir, std::string &adapter,
+                    std::vector<std::string>& kmer_list, std::vector<float> &kmer_means,std::vector<float>& kmer_stds,
+                    size_t &len_read,std::string*assigned_barcode, std::string*assigned_umi, float*computed_distance) {
     // signal processing
     cut_first_part(signal);
 
@@ -114,7 +119,7 @@ void assign_barcode(std::vector<float>&signal, size_t& sw_strand,std::map<std::s
         //get segments means and stds
         std::vector<float> means(relevant_bkps.size()-1), stds(relevant_bkps.size()-1);
         get_kmers_info(signal,relevant_bkps,&means,&stds);
-        size_t n_kmers {means.size()}, upper_bound{200}, lower_bound{40};
+        size_t n_kmers {means.size()}, upper_bound{200}, lower_bound{50};
         if (strand == 1) {reverse(means.begin(), means.end());reverse(stds.begin(), stds.end());}
 
         bool rej_cond = compute_rejection_condition(n_kmers,strand, len_read,
@@ -132,16 +137,33 @@ void assign_barcode(std::vector<float>&signal, size_t& sw_strand,std::map<std::s
             size_t barcode_index {0};
             choose_barcode(seq_, bc_matrix, KL_matrix, start_indices, &barcode_index, computed_distance);
             *assigned_barcode = bc_list[barcode_index];
+
+            //open file with corresponding UMI list
+            std::vector<std::string> umi_list;
+            std::string umi_file{umi_dir+*assigned_barcode+".txt"};
+            std::string ad_barcode = adapter+*assigned_barcode;
+            auto umis = get_barcode_data(umi_file, ad_barcode, kmer_list, &umi_list);
+            auto umi_dir{(*umis)[sw_strand]};
+	    
+            //repeat above with adapter+barcode+umi
+            std::vector<std::vector<int>> umi_matrix = get_barcode_matrix(umi_dir);
+            auto start_indices_umi = compute_start_indices(umi_matrix);
+            size_t umi_index {0};
+            choose_barcode(seq_, umi_matrix, KL_matrix, start_indices_umi, &umi_index, computed_distance);
+            *assigned_umi = umi_list[umi_index];
+            delete [] umis;
+
+
         }
     }
 }
 
 void write_output(std::string &fname, std::vector<std::string> &read_ids,
-                  std::vector<std::string> &barcodes, std::vector<float>&distances) {
+                  std::vector<std::string> &barcodes, std::vector<std::string> &umis, std::vector<float>&distances) {
     std::ofstream outfile (fname);
     size_t n_reads {read_ids.size()};
     for (size_t i{0}; i<n_reads; i++) {
-        outfile << read_ids[i] << "\t" << barcodes[i] << "\t"<<distances[i] << std::endl;
+        outfile << read_ids[i] << "\t" << barcodes[i] << "\t"<<  umis[i] << "\t" <<distances[i] << std::endl;
     }
 
 

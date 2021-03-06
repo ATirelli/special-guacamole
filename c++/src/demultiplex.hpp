@@ -20,17 +20,21 @@
 #define NANOPORE_DEMULTIPLEX_HPP
 
 
-void demultiplex_file(const std::string &, const std::string &, std::string &, std::string &, std::string &);
+void demultiplex_file(const std::string &, const std::string &, std::string &, std::string &, std::string &, std::string &);
 
 void process_read(fast5_file &, std::string& ,
                   std::unordered_map<size_t, std::map<std::string, std::vector<int>>>&,
 std::vector<std::string> &,
+std::string &,
+std::string &,
+std::vector<std::string>& ,
 std::vector<float> &,std::vector<float>& ,
-std::string* , float* );
+std::string*, std::string* , float* );
 
-void write_output(std::string &, std::vector<std::string> &,std::vector<std::string> &, std::vector<float>&);
+void write_output(std::string &, std::vector<std::string> &,std::vector<std::string> &,std::vector<std::string> &, std::vector<float>&);
 
 void assign_barcode(std::vector<float>&, size_t& ,std::map<std::string, std::vector<int>>&,
-                    std::vector<std::string> &, std::vector<float> &,std::vector<float>& ,
-                    size_t &len_read,std::string*, float*);
+                    std::vector<std::string> &, std::string &, std::string &,
+                    std::vector<std::string>&,
+                    std::vector<float> &,std::vector<float>&, size_t &len_read,std::string*,std::string*, float*);
 #endif //NANOPORE_DEMULTIPLEX_HPP

@@ -1,7 +1,7 @@
 //
 // Created by Tirelli Andrea on 06/03/2020.
 //
-#include <algorithm> 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <cmath>
