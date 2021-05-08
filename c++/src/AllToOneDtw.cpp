@@ -21,7 +21,6 @@ AllToOneDtw::AllToOneDtw(const std::vector<std::vector<int>>& kmer_barcode_matri
 }
 
 void AllToOneDtw::compute_accumulated_cost_matrix(int index, int &start_index) {
-
     for (int i{start_index}; i < len_subseq; i++) {
         for (size_t j{0}; j < len_seq; j++) {
             auto val = std::min(cost_matrix.at(i).at(j + 1),
@@ -85,7 +84,6 @@ std::vector<std::pair<size_t, size_t>> AllToOneDtw::return_subsequence_path() {
 void AllToOneDtw::compute_all_to_one(std::vector<int> &start_indices, size_t *index_barcode, float*distance) {
     size_t size1 {this->kmer_barcode_matrix.size()};
     std::vector<float> dtw (size1, std::numeric_limits<float>::infinity());
-
     //first barcode
     compute_accumulated_cost_matrix(0, start_indices.at(0));
     dtw.at(0)=get_distance();
@@ -101,9 +99,11 @@ void AllToOneDtw::compute_all_to_one(std::vector<int> &start_indices, size_t *in
         }
         if (*std::min_element(cost_matrix.at(start_indices[k] + 1).begin(), cost_matrix.at(start_indices[k] + 1).end())>=min_dist) {
             auto l {k};
-            while (start_indices[k]>=start_indices[l]) {k++;}
+            while (start_indices[k]>=start_indices[l]) {
+                k++;}
         }
-        else {
+
+        else  {
             for (int i{start_indices[k] + 1}; i < len_subseq; i++) {
                 for (size_t j{0}; j < len_seq; j++) {
                     auto val = std::min(cost_matrix.at(i).at(j + 1),
@@ -114,6 +114,7 @@ void AllToOneDtw::compute_all_to_one(std::vector<int> &start_indices, size_t *in
             auto temp_min_dist = get_distance();
             if (temp_min_dist<min_dist) {min_dist = temp_min_dist; min_index = k;}
             k++;
+
         }
         *index_barcode = min_index;
         *distance = min_dist;

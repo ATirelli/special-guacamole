@@ -28,6 +28,7 @@ int main(int argc, const char *argv[])
         demultiplex_file(fast5, kmer, barcodes, umi_dir, adapter, outdir);
 
     }
+    
     catch (const error &ex)
     {
         std::cerr << ex.what() << '\n';
@@ -35,3 +36,4 @@ int main(int argc, const char *argv[])
 
 
 }
+

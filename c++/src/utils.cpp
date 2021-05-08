@@ -98,7 +98,10 @@ std::vector<std::string> read_barcode_file(std::string fname){
 std::vector<std::vector<int>> get_barcode_matrix(const std::map<std::string, std::vector<int>>&bc_map) {
     std::vector<std::vector<int>> barcode_matrix;
     auto it {bc_map.begin()};
-    while (it!=bc_map.end()) {barcode_matrix.push_back(it->second);it++;}
+    while (it!=bc_map.end()) {
+        barcode_matrix.push_back(it->second);
+        it++;
+    }
     return barcode_matrix;
 }
 

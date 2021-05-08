@@ -37,20 +37,24 @@ void demultiplex_file(const std::string &fname,const std::string &kmer_file,  st
                      &(assigned_barcodes.at(i)),&(assigned_umis.at(i)), &(computed_distances.at(i)));
     }
     boost::filesystem::path p(fname);
-    std::string basename = p.filename().string();;
+    std::string basename = p.filename().string();
     std::string fname_output=out_dir+std::regex_replace(basename, std::regex(".fast5"), ".txt");
     write_output(fname_output,read_ids, assigned_barcodes, assigned_umis,computed_distances);
 
 }
 
-void process_read(fast5_file &f_p, std::string& read_id,
-                  std::unordered_map<size_t, std::map<std::string, std::vector<int>>>&barcodes,
+void process_read(fast5_file &f_p,
+                  std::string& read_id,
+                  std::unordered_map<size_t,std::map<std::string,std::vector<int>>>&barcodes,
                   std::vector<std::string> &bc_list,
                   std::string &umi_dir,
                   std::string &adapter,
                   std::vector<std::string>& kmer_list,
-                  std::vector<float> &kmer_means,std::vector<float>& kmer_stds,
-                  std::string* assigned_barcode,std::string* assigned_umi, float* computed_dist) {
+                  std::vector<float> &kmer_means,
+                  std::vector<float>& kmer_stds,
+                  std::string* assigned_barcode,
+                  std::string* assigned_umi,
+                  float* computed_dist) {
 
     // load data to retrieve signal and read
     fast5_raw_scaling scaling{fast5_get_channel_params(f_p, read_id)};
@@ -81,10 +85,19 @@ void process_read(fast5_file &f_p, std::string& read_id,
     }
 }
 
-void assign_barcode(std::vector<float>&signal, size_t& sw_strand,std::map<std::string, std::vector<int>>&barcodes,
-                    std::vector<std::string> &bc_list, std::string &umi_dir, std::string &adapter,
-                    std::vector<std::string>& kmer_list, std::vector<float> &kmer_means,std::vector<float>& kmer_stds,
-                    size_t &len_read,std::string*assigned_barcode, std::string*assigned_umi, float*computed_distance) {
+void assign_barcode(std::vector<float>&signal,
+                    size_t& sw_strand,
+                    std::map<std::string, std::vector<int>>&barcodes,
+                    std::vector<std::string> &bc_list,
+                    std::string &umi_dir,
+                    std::string &adapter,
+                    std::vector<std::string>& kmer_list,
+                    std::vector<float> &kmer_means,
+                    std::vector<float>& kmer_stds,
+                    size_t &len_read,
+                    std::string*assigned_barcode,
+                    std::string*assigned_umi,
+                    float*computed_distance) {
     // signal processing
     cut_first_part(signal);
 
@@ -143,15 +156,16 @@ void assign_barcode(std::vector<float>&signal, size_t& sw_strand,std::map<std::s
             std::string umi_file{umi_dir+*assigned_barcode+".txt"};
             std::string ad_barcode = adapter+*assigned_barcode;
             auto umis = get_barcode_data(umi_file, ad_barcode, kmer_list, &umi_list);
-            auto umi_dir{(*umis)[sw_strand]};
-	    
+            auto umi{(*umis)[sw_strand]};
+
             //repeat above with adapter+barcode+umi
-            std::vector<std::vector<int>> umi_matrix = get_barcode_matrix(umi_dir);
+            std::vector<std::vector<int>> umi_matrix = get_barcode_matrix(umi);
             auto start_indices_umi = compute_start_indices(umi_matrix);
             size_t umi_index {0};
             choose_barcode(seq_, umi_matrix, KL_matrix, start_indices_umi, &umi_index, computed_distance);
             *assigned_umi = umi_list[umi_index];
-            delete [] umis;
+            delete umis;
+
 
 
         }

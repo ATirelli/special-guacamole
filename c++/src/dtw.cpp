@@ -44,18 +44,9 @@ float KL_divergence_between_vectors(const std::vector<float> &v1, const std::vec
 void choose_barcode(std::vector<size_t>& signal, std::vector<std::vector<int>>& kmer_barcode_matrix,
                     std::vector<std::vector<float>>& KL_matrix, std::vector<int>& start_indices,
                     size_t *index_barcode, float*distance) {
-    //size_t size1 {kmer_barcode_matrix.size()};
-    //std::vector<float> dtw (size1, 0);
 
     AllToOneDtw d = AllToOneDtw(kmer_barcode_matrix, signal, KL_matrix);
 
-    /*for (int i {0}; i<size1; i++) {
-        d.compute_accumulated_cost_matrix(i, start_indices.at(i));
-        dtw.at(i)=d.get_distance();
-    }
-
-    *index_barcode = std::distance(dtw.begin(), std::min_element(dtw.begin(), dtw.end()));
-    *distance = dtw[*index_barcode];*/
     d.compute_all_to_one(start_indices, index_barcode, distance);
 }
 
@@ -67,6 +58,7 @@ int compute_number_common_entries(std::vector<int> &v1, std::vector<int> &v2) {
 }
 
 std::vector<int> compute_start_indices(std::vector<std::vector<int>>&kmer_barcode_matrix) {
+
     std::vector<int> start_indices;
     start_indices.push_back(0);
     for (size_t i{1};i<kmer_barcode_matrix.size(); i++) {
