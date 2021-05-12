@@ -63,11 +63,14 @@ std::unordered_map<size_t, std::map<std::string, std::vector<int>>>* get_barcode
     std::map<std::string, std::vector<int>> fwd_bc_kmers {}, bkw_bc_kmers{};
     std::unordered_map<size_t, std::map<std::string, std::vector<int>>> * out_hash_ptr;
     out_hash_ptr = new std::unordered_map<size_t, std::map<std::string, std::vector<int>>>;
+
+    auto kmer_len {kmer_list.at(0).size()};
+
     for (auto &bc: barcodes) {
         (*bc_list).push_back(bc);
         std::string bc_adapter = adapter+bc;
-        fwd_bc_kmers.insert(std::make_pair(bc, get_sequence_kmers(bc_adapter, 6, kmer_pos)));
-        std::vector<int >seq_kmer {get_sequence_kmers(reverse_complement(bc_adapter), 6, kmer_pos)};
+        fwd_bc_kmers.insert(std::make_pair(bc, get_sequence_kmers(bc_adapter, kmer_len, kmer_pos)));
+        std::vector<int >seq_kmer {get_sequence_kmers(reverse_complement(bc_adapter), kmer_len, kmer_pos)};
         std::reverse(seq_kmer.begin(), seq_kmer.end());
         bkw_bc_kmers.insert(std::make_pair(bc, seq_kmer));
     }
